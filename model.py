@@ -23,7 +23,7 @@ class Model(nn.Module):
 
         # Attention
         self.multihead_attn = nn.MultiheadAttention(embed_dim=embedding_dim, num_heads=num_heads)
-        self.attn_mask = nn.Transformer.generate_square_subsequent_mask(context_size)
+        self.attn_mask = nn.Transformer.generate_square_subsequent_mask(num_heads) # TODO: GRRRRR it should be context_size!
         # self.attn_mask = torch.triu(torch.ones(size=(context_size, context_size)), diagonal=1).bool() # Triangle; True means don't attend
 
         # LayerNorm
@@ -39,12 +39,16 @@ class Model(nn.Module):
         self.fc_out = nn.Linear(embedding_dim, vocab_size)
         
         
-    def forward(self, x):
-        x = self.tok_emb(x) + self.pos_emb(x) # Give some positional info. Gradients flow through both, so we learn both (instead of using sin/cos wave method)
+    def forward(self, seq):
+        T = seq.size(0)
+
+        # Embeddings
+        pos = torch.arange(0, T, dtype=torch.long) # Positional info
+        x = self.tok_emb(seq) + self.pos_emb(pos) 
 
         # Layer Norm, Attention, Add residual
         x = self.layer_norm1(x)
-        attn_output = self.multihead_attn(query=x, key=x, value=x, is_causal=True, attn_mask=self.attn_mask)
+        attn_output, _ = self.multihead_attn(query=x, key=x, value=x, is_causal=True, attn_mask=self.attn_mask)
         x = x + attn_output
 
         # Norm
@@ -59,5 +63,10 @@ class Model(nn.Module):
 
 input_tensor = torch.tensor(tokenizer.encode("Dylan's GPT2"))
 model = Model()
-print(model)
-print(model(input_tensor))
+
+logits = model(input_tensor)
+logits = logits[-1, :] # Get the last logit row, the numbers represent the "almost" probability of the next token
+probs = torch.softmax(logits, dim=-1)
+token = torch.argmax(probs, dim=-1)
+res = tokenizer.decode([token.item()])
+print(res)
