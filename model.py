@@ -1,9 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import tiktoken
-
-tokenizer = tiktoken.get_encoding("gpt2")
 
 class Transformer:
     def __init__(self):

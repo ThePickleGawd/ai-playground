@@ -1,9 +1,11 @@
-import torch
-from model import GPT2
 import os
+import torch
+from torch.utils.data import DataLoader
+from model import GPT2
+from data.shakespeare.dataset import ShakespeareDataset
 import tiktoken
 
-tokenizer = tiktoken.get_encoding("gpt2")
+enc = tiktoken.get_encoding("gpt2")
 
 device = "cpu"
 if torch.cuda.is_available():
@@ -11,29 +13,26 @@ if torch.cuda.is_available():
 elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     device = "mps"
 
-device = "cpu"
+device = "cpu" # TODO: Remove hardcoded cpu
 print(f"Using device {device}")
 
-# Load data as an array of characters, then tokens
-data_path = os.path.join("data", "shakespeare", "input.txt")
-with open(data_path, "r") as f:
-    text = f.read()
-
-text = text[:1000]
-tokens = tokenizer.encode(text)
-
-# Data batch; y[i]=x[i+1] for labels
-B, T = 4, 32
-buf = torch.tensor(tokens[:B*T + 1])
-x = buf[:-1].view(B,T)
-y = buf[1:].view(B,T)
 
 model = GPT2()
 model.to(device)
-logits = model(x)
+
+train_dataset = ShakespeareDataset(train=True)
+test_dataset = ShakespeareDataset(train=False)
+
+train_dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+test_dataloader = DataLoader(test_dataset, batch_size=8, shuffle=True)
+
 
 epochs = 1
 
 for _ in range(epochs):
-    output, loss = model(x,y)
+    x, y = next(iter(train_dataloader))
+    print(x.size(),y.size())
+
+    break
+    logits, loss = model(x)
     print(loss)

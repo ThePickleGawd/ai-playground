@@ -3,7 +3,7 @@ import tiktoken
 from model import GPT2
 import sys
 
-tokenizer = tiktoken.get_encoding("gpt2")
+enc = tiktoken.get_encoding("gpt2")
 
 input = [
     "Dylan is cool",
@@ -11,7 +11,7 @@ input = [
     "HELLO!"
 ]
 
-input_tensor = torch.tensor(tokenizer.encode(input[0])).unsqueeze(dim=0)
+input_tensor = torch.tensor(enc.encode(input[0])).unsqueeze(dim=0)
 model = GPT2()
 model.eval()
 
@@ -22,5 +22,5 @@ with torch.no_grad():
     probs = torch.softmax(logits, dim=-1)
     token = torch.argmax(probs, dim=-1)
     print(token)
-    res = tokenizer.decode([token.item()])
+    res = enc.decode([token.item()])
     print(res)
