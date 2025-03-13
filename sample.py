@@ -13,12 +13,14 @@ input = [
 
 input_tensor = torch.tensor(tokenizer.encode(input[0])).unsqueeze(dim=0)
 model = GPT2()
+model.eval()
 
-logits = model(input_tensor)
-logits = logits[-1, -1, :] # Get the last logit row, the numbers represent the "almost" probability of the next token
-print(logits.size())
-probs = torch.softmax(logits, dim=-1)
-token = torch.argmax(probs, dim=-1)
-print(token)
-res = tokenizer.decode([token.item()])
-print(res)
+with torch.no_grad():
+    logits = model(input_tensor)
+    logits = logits[-1, -1, :] # Get the last logit row, the numbers represent the "almost" probability of the next token
+    print(logits.size())
+    probs = torch.softmax(logits, dim=-1)
+    token = torch.argmax(probs, dim=-1)
+    print(token)
+    res = tokenizer.decode([token.item()])
+    print(res)

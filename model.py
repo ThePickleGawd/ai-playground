@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import tiktoken
 
 tokenizer = tiktoken.get_encoding("gpt2")
@@ -35,10 +36,10 @@ class GPT2(nn.Module):
         self.relu = nn.ReLU()
 
         # Linear and softmax output
-        self.fc_out = nn.Linear(embedding_dim, vocab_size)
+        self.lm_head = nn.Linear(embedding_dim, vocab_size)
         
         
-    def forward(self, seq):
+    def forward(self, seq, targets=None):
         B, T = seq.size()
 
         # Embeddings
@@ -56,8 +57,12 @@ class GPT2(nn.Module):
         ffn = self.fc2(self.relu(self.fc1(norm)))
 
         # Add residuals and output values
-        output = self.fc_out(x + ffn)
-        return output
+        output = self.lm_head(x + ffn)
 
+        # Calcluate loss if given target labels. We need to flatten tensor for cross_entropy
+        loss = None
+        if targets is not None:
+            loss = F.cross_entropy(output.view(-1, output.size(-1)), targets.view(-1))
 
-
+        return output, loss
+    
