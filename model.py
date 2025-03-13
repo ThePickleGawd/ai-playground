@@ -8,22 +8,21 @@ class Transformer:
     def __init__(self):
         pass
 
-class Model(nn.Module):
+class GPT2(nn.Module):
     def __init__(self):
         super().__init__()
 
         vocab_size, embedding_dim = 50257, 768 # Based on gpt2 specs
         hidden_dim = 4 * embedding_dim
         num_heads = 6
-        context_size = 1024
+        # context_size = 1024
 
         # Token and Positional Embeddings
         self.tok_emb = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim) # (502557, 768)
         self.pos_emb = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
 
         # Attention
-        self.multihead_attn = nn.MultiheadAttention(embed_dim=embedding_dim, num_heads=num_heads)
-        self.attn_mask = nn.Transformer.generate_square_subsequent_mask(num_heads) # TODO: GRRRRR it should be context_size!
+        self.multihead_attn = nn.MultiheadAttention(embed_dim=embedding_dim, num_heads=num_heads, batch_first=True)
         # self.attn_mask = torch.triu(torch.ones(size=(context_size, context_size)), diagonal=1).bool() # Triangle; True means don't attend
 
         # LayerNorm
@@ -40,7 +39,7 @@ class Model(nn.Module):
         
         
     def forward(self, seq):
-        T = seq.size(0)
+        B, T = seq.size()
 
         # Embeddings
         pos = torch.arange(0, T, dtype=torch.long) # Positional info
@@ -48,7 +47,8 @@ class Model(nn.Module):
 
         # Layer Norm, Attention, Add residual
         x = self.layer_norm1(x)
-        attn_output, _ = self.multihead_attn(query=x, key=x, value=x, is_causal=True, attn_mask=self.attn_mask)
+        attn_mask = nn.Transformer.generate_square_subsequent_mask(T)
+        attn_output, _ = self.multihead_attn(query=x, key=x, value=x, is_causal=True, attn_mask=attn_mask)
         x = x + attn_output
 
         # Norm
@@ -61,12 +61,3 @@ class Model(nn.Module):
 
 
 
-input_tensor = torch.tensor(tokenizer.encode("Dylan's GPT2"))
-model = Model()
-
-logits = model(input_tensor)
-logits = logits[-1, :] # Get the last logit row, the numbers represent the "almost" probability of the next token
-probs = torch.softmax(logits, dim=-1)
-token = torch.argmax(probs, dim=-1)
-res = tokenizer.decode([token.item()])
-print(res)
