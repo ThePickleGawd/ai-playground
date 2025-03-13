@@ -30,8 +30,10 @@ test_dataloader = DataLoader(test_dataset, batch_size=8, shuffle=True)
 epochs = 1
 
 for _ in range(epochs):
-    x, y = next(iter(train_dataloader))
-    print(x.size(),y.size())
+    for batch in train_dataloader:
+        x, y = batch
+        print(x.size(),y.size())
+
 
     break
     logits, loss = model(x)
