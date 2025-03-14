@@ -75,10 +75,17 @@ class GPT2(nn.Module):
     @torch.no_grad()
     def generate(self, seq, max_tokens=16):
         for _ in range(max_tokens):
+            # Stay in block size
+            if seq.size(1) > self.config.block_size:
+                seq = seq[:, -self.config.block_size:]
+
+            # Get probs for next token
             output, _ = self(seq)
             logits = output[:, -1, :]
             probs = F.softmax(logits, dim=-1)
-            out_token = torch.argmax(probs, dim=1)
-            seq = torch.cat((seq, out_token.unsqueeze(dim=0)), dim=1)\
+
+            # Sample and concat to seq
+            out_token = torch.multinomial(probs, num_samples=1)
+            seq = torch.cat((seq, out_token), dim=1)
         
         return seq

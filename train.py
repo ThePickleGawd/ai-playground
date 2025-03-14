@@ -64,6 +64,7 @@ for epoch in range(epochs):
 
     # Print sample every 5 epochs
     if epoch % 5 == 0:
+        model.eval()
         out = model.generate(torch.tensor(enc.encode("DYLAN:\n"), dtype=torch.long, device=device).unsqueeze(dim=0))
         print(enc.decode(out.squeeze(0).tolist()))
 
