@@ -6,21 +6,21 @@ import numpy as np
 
 
 class ShakespeareDataset(Dataset):
-    def __init__(self, train=True):
+    def __init__(self, train=True, block_size=8):
         enc = tiktoken.get_encoding("gpt2")
+
+        self.block_size = block_size
 
         script_dir = os.path.dirname(__file__)
         if train:
-            tokens = np.memmap(os.path.join(script_dir, 'train.bin'), dtype=np.uint16, mode='r')
+            self.tokens = np.memmap(os.path.join(script_dir, 'train.bin'), dtype=np.uint16, mode='r')
         else:
-            tokens = np.memmap(os.path.join(script_dir, 'val.bin'), dtype=np.uint16, mode='r') 
-
-        # Set label of token to be the next token
-        self.data = tokens[:-1]
-        self.labels = tokens[1:]
+            self.tokens = np.memmap(os.path.join(script_dir, 'val.bin'), dtype=np.uint16, mode='r') 
 
     def __len__(self):
-        return len(self.data)
+        return len(self.tokens) - 1 # Every token's label is the next token, so the very last one won't have a label
 
     def __getitem__(self, idx):
-        return self.data[idx], self.labels[idx]
+        x = torch.tensor(self.tokens[idx: idx + self.block_size], dtype=torch.int64)
+        y = torch.tensor(self.tokens[idx + 1: idx + self.block_size + 1], dtype=torch.int64)
+        return x, y
